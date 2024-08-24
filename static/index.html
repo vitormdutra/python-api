@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        h1, h2 {
+            color: #0066cc;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        label {
+            display: inline-block;
+            width: 150px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 200px;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #004a99;
+        }
+        .weather-container {
+            display: flex;
+            align-items: center;
+        }
+        .weather-container img {
+            margin-right: 10px; /* Reduz a margem direita para aproximar o texto */
+            width: 150px;
+            height: auto;
+            border-radius: 10px;
+        }
+        .weather-data {
+            background-color: #e8e8e8;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Weather Information</h1>
+
+    <form id="weatherForm">
+        <label for="city">City:</label>
+        <input type="text" id="city" name="city" required>
+        <br>
+        <label for="country">Country Code:</label>
+        <input type="text" id="country" name="country" required>
+        <br>
+        <br><br>
+        <button type="submit">Get Weather</button>
+    </form>
+
+    <h2>Weather Data</h2>
+    <div class="weather-container">
+        <pre id="weatherResult" class="weather-data">
+            <img src="/static/globe.png" alt="Weather globe">
+            <span id="weatherText">Enter city, country code, and API key to fetch weather data.</span>
+        </pre>
+    </div>
+
+    <script>
+        document.getElementById('weatherForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const city = document.getElementById('city').value;
+            const country = document.getElementById('country').value;
+
+            fetch(`http://127.0.0.1:8000/weather?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`, {
+                method: 'GET',
+            })
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 403) {
+                        throw new Error('Invalid API Key');
+                    } else if (response.status === 502) {
+                        throw new Error('Failed to fetch weather data');
+                    } else {
+                        throw new Error('An unknown error occurred');
+                    }
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Atualizar apenas o texto do clima
+                const weatherInfo = `City: ${data.name}\nCountry: ${data.sys.country}\nTemperature: ${data.main.temp} °C\nHumidity: ${data.main.humidity}%\nWeather: ${data.weather[0].description}\nWind Speed: ${data.wind.speed} m/s\n`;
+                document.getElementById('weatherText').textContent = weatherInfo;
+            })
+            .catch(error => {
+                document.getElementById('weatherText').textContent = `Error: ${error.message}`;
+            });
+        });
+    </script>
+</body>
+</html>

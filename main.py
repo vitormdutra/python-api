@@ -1,15 +1,36 @@
+import uvicorn
 from fastapi import FastAPI, HTTPException, Query, Header
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 import requests
-import uvicorn
 import logging
 from cachetools import cached, TTLCache
+import os
+
 
 logging.basicConfig(level=logging.INFO)
 cache = TTLCache(maxsize=100, ttl=300)
-OPENWEATHERMAP_API_KEY = "Information goes here"
+
+OPENWEATHERMAP_API_KEY = os.getenv("OPENWEATHERMAP_API_KEY")
 
 app = FastAPI()
+
+origins = [
+    "http://localhost:3000",  # URL do frontend se estiver em outra origem
+    "http://localhost:8000",  # Para acessar via mesma origem
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Servir arquivos estáticos
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @cached(cache)
 def fetch_weather_data(url):
@@ -22,9 +43,7 @@ def fetch_weather_data(url):
         return None
 
 @app.get("/weather", summary="Get weather information", description="Retrieve weather data for a specific city and country.")
-def get_weather(api_key: str = Header(...), city: str = Query(..., description="Name of the city"), country: str = Query(..., description="Country code (e.g., 'BR' for Brazil)")):
-    if api_key != "Define a key for API":
-        raise HTTPException(status_code=403, detail="Invalid API Key")
+def get_weather(city: str = Query(..., description="Name of the city"), country: str = Query(..., description="Country code (e.g., 'BR' for Brazil)")):
     logging.info(f"Receiving request for weather forecast for {city}, {country}")
     url = f"http://api.openweathermap.org/data/2.5/weather?q={city},{country}&appid={OPENWEATHERMAP_API_KEY}&units=metric"
 
@@ -37,4 +56,4 @@ def get_weather(api_key: str = Header(...), city: str = Query(..., description="
     return JSONResponse(content=weather)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
